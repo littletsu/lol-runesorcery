@@ -70,17 +70,17 @@ const onLCUConnect = async (data) => {
     }
     
     let perks;
-    const getLolPerksStyles = async (currentAttempts=0, retryTimeout=5000, maxAttempts=5) => {
+    const getLolPerks = async (currentAttempts=0, retryTimeout=5000, maxAttempts=5) => {
         perks = await request('lol-perks/v1/perks');
         
         if(isEmpty(perks) && currentAttempts <= maxAttempts) {
             console.log(`Lol Perks empty, retrying again in ${retryTimeout}ms... (${currentAttempts}/${maxAttempts})`);
             await asyncTimeout(retryTimeout);
-            return getLolPerksStyles(currentAttempts+1, retryTimeout, maxAttempts);
+            return getLolPerks(currentAttempts+1, retryTimeout, maxAttempts);
         }
     }
     const styles = await request('lol-perks/v1/styles');
-    await getLolPerksStyles();
+    await getLolPerks();
 
     const summoner = await request('lol-summoner/v1/current-summoner');
     let pages = await request('lol-perks/v1/pages');
