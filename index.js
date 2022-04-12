@@ -74,7 +74,7 @@ const onLCUConnect = async (data) => {
         perks = await request('lol-perks/v1/perks');
         
         if(isEmpty(perks) && currentAttempts <= maxAttempts) {
-            console.log(`Lol Perks or styles empty, retrying again in ${retryTimeout}ms... (${currentAttempts}/${maxAttempts})`);
+            console.log(`Lol Perks empty, retrying again in ${retryTimeout}ms... (${currentAttempts}/${maxAttempts})`);
             await asyncTimeout(retryTimeout);
             return getLolPerksStyles(currentAttempts+1, retryTimeout, maxAttempts);
         }
