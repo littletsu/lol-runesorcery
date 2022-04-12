@@ -25,7 +25,7 @@ const setPageId = (newPage) => {
 }
 const getStyleIdFromUrl = url => parseInt(url.split('/').slice(-1)[0].slice(0, -4))
 const getPerkIdFromClassName = className => parseInt(className.split(' ')[0].split('-')[1])
-const getPerkIdsFromElements = ($, selector, slice) => Array.from($(selector).slice(0, slice).map((_, el) => getPerkIdFromClassName(el.attribs.class))) 
+const getPerksIdFromElements = ($, selector, slice) => Array.from($(selector).slice(0, slice).map((_, el) => getPerkIdFromClassName(el.attribs.class))) 
 const asyncTimeout = timeout => {
     return new Promise((res) => {
         setTimeout(() => res(), timeout);
@@ -130,9 +130,9 @@ const onLCUConnect = async (data) => {
         const primaryStyleId = getStyleIdFromUrl(styleImgs[1].attribs.src);
         const subStyleId = getStyleIdFromUrl(styleImgs[3].attribs.src);
         
-        const primaryPerksId = getPerkIdsFromElements($, `img[style="opacity: 1; "]`, 4)
-        const secondaryPerksId = getPerkIdsFromElements($, `img[style="opacity: 0.6; opacity:1"]`, 2)
-        const statPerksId = getPerkIdsFromElements($, 'div.img-align-block > div[style=""] > img', 3)
+        const primaryPerksId = getPerksIdFromElements($, `img[style="opacity: 1; "]`, 4)
+        const secondaryPerksId = getPerksIdFromElements($, `img[style="opacity: 0.6; opacity:1"]`, 2)
+        const statPerksId = getPerksIdFromElements($, 'div.img-align-block > div[style=""] > img', 3)
         
         console.log(
             findStyleName(primaryStyleId) + '\n' +
