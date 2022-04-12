@@ -118,38 +118,46 @@ const onLCUConnect = async (data) => {
         return response;
     }
 
+    const currentChampion = await request('lol-champ-select/v1/current-champion');
+    const fetchChampionRunes = async (championId) => {
+        const champion = await request(`lol-champions/v1/inventories/${summoner.summonerId}/champions/${championId}`);
+        console.log(`Making runes for ${champion.alias}`)
+        const championRunesHTML = await request(`champions/runes/${champion.alias.toLowerCase()}`, leagueofgraphs, true)
+        //console.log(championRunesHTML)
+        const $ = cheerio.load(championRunesHTML);
+        const selectedPage = 0;
+        const styleImgs = $(".perksTableContainerTable")[selectedPage].children[1].children[0].children[1].children
+        const primaryStyleId = getStyleIdFromUrl(styleImgs[1].attribs.src);
+        const subStyleId = getStyleIdFromUrl(styleImgs[3].attribs.src);
+        
+        const primaryPerksId = getPerkIdsFromElements($, `img[style="opacity: 1; "]`, 4)
+        const secondaryPerksId = getPerkIdsFromElements($, `img[style="opacity: 0.6; opacity:1"]`, 2)
+        const statPerksId = getPerkIdsFromElements($, 'div.img-align-block > div[style=""] > img', 3)
+        
+        console.log(
+            findStyleName(primaryStyleId) + '\n' +
+            '\t' + primaryPerksId.map(findPerkName).join('\n\t') + '\n' +
+            findStyleName(subStyleId) + '\n' +
+            '\t' + secondaryPerksId.map(findPerkName).join('\n\t') + '\n' +
+            statPerksId.map(findPerkName).join('\n') + '\n'
+        )
+        
+        const selectedPerkIds = [...primaryPerksId, ...secondaryPerksId, ...statPerksId];
+        await modifyPage(pageId, primaryStyleId, selectedPerkIds, subStyleId, champion.name);
+    }
+
+    if(currentChampion?.httpStatus !== 404) {
+        fetchChampionRunes(currentChampion);
+    }
+
     ws.on('message', async (msg) => {
         if(msg.length === 0) return;
         const message = JSON.parse(msg.toString());
         const event = message[2];
         const { data, uri, eventType } = event;
-        //console.log(uri, data, eventType)
+        
         if(uri.endsWith('champ-select/v1/current-champion') && (eventType === 'Create' || eventType === 'Update')) {
-            const champion = await request(`lol-champions/v1/inventories/${summoner.summonerId}/champions/${data}`);
-            console.log(`Making runes for ${champion.alias}`)
-            const championRunesHTML = await request(`champions/runes/${champion.alias.toLowerCase()}`, leagueofgraphs, true)
-            //console.log(championRunesHTML)
-            const $ = cheerio.load(championRunesHTML);
-            const selectedPage = 0;
-            const styleImgs = $(".perksTableContainerTable")[selectedPage].children[1].children[0].children[1].children
-            const primaryStyleId = getStyleIdFromUrl(styleImgs[1].attribs.src);
-            const subStyleId = getStyleIdFromUrl(styleImgs[3].attribs.src);
-            
-            const primaryPerksId = getPerkIdsFromElements($, `img[style="opacity: 1; "]`, 4)
-            const secondaryPerksId = getPerkIdsFromElements($, `img[style="opacity: 0.6; opacity:1"]`, 2)
-            const statPerksId = getPerkIdsFromElements($, 'div.img-align-block > div[style=""] > img', 3)
-            
-            console.log(
-                findStyleName(primaryStyleId) + '\n' +
-                '\t' + primaryPerksId.map(findPerkName).join('\n\t') + '\n' +
-                findStyleName(subStyleId) + '\n' +
-                '\t' + secondaryPerksId.map(findPerkName).join('\n\t') + '\n' +
-                statPerksId.map(findPerkName).join('\n') + '\n'
-            )
-            
-            const selectedPerkIds = [...primaryPerksId, ...secondaryPerksId, ...statPerksId];
-            await modifyPage(pageId, primaryStyleId, selectedPerkIds, subStyleId, champion.name);
-            
+            fetchChampionRunes(data);
         }
         
     })
