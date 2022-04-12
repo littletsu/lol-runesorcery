@@ -79,8 +79,8 @@ const onLCUConnect = async (data) => {
             return getLolPerks(currentAttempts+1, retryTimeout, maxAttempts);
         }
     }
-    const styles = await request('lol-perks/v1/styles');
     await getLolPerks();
+    const styles = await request('lol-perks/v1/styles');
 
     const summoner = await request('lol-summoner/v1/current-summoner');
     let pages = await request('lol-perks/v1/pages');
