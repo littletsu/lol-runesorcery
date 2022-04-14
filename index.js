@@ -146,7 +146,7 @@ const onLCUConnect = async (data) => {
         await modifyPage(pageId, primaryStyleId, selectedPerkIds, subStyleId, champion.name);
     }
 
-    if(currentChampion?.httpStatus !== 404) {
+    if(typeof currentChampion == "number") {
         fetchChampionRunes(currentChampion);
     }
 
