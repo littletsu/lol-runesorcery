@@ -32,6 +32,13 @@ const asyncTimeout = timeout => {
     })
 } 
 const isEmpty = (arr) => arr.length === 0;
+const compareArrays = (a1, a2) => {
+    var i = a1.length;
+    while (i--) {
+        if (a1[i] !== a2[i]) return false;
+    }
+    return true
+}
 const onLCUConnect = async (data) => {
     const { username, password, address, port } = data;
     const url = `${address}:${port}`;
@@ -83,7 +90,15 @@ const onLCUConnect = async (data) => {
     const styles = await request('lol-perks/v1/styles');
 
     const summoner = await request('lol-summoner/v1/current-summoner');
-    let pages = await request('lol-perks/v1/pages');
+    let pages;
+
+    // Gets a page from an id and sets the pages variable
+    const getPageObject = async (id=null) => {
+        if(id === null) id = pageId;
+        pages = await request('lol-perks/v1/pages');
+        return pages.find(page => page.id === id)
+    }
+
     const findNameOr = (arr, id) => arr.find(obj => obj.id === id)?.name || id
     const findStyleName = id => findNameOr(styles, id);
     const findPerkName = id => findNameOr(perks, id);
@@ -92,31 +107,48 @@ const onLCUConnect = async (data) => {
         `${page.name} (${findNameOr(styles, page.primaryStyleId)}, ${findNameOr(styles, page.subStyleId)})\n\t${page.selectedPerkIds.map(perkId => findNameOr(perks, perkId)).join('\n\t')}`
     ).join('\n'))*/
     setPageId(getPageTxt() || pages.find(page => (page.name.startsWith("awa: ")) || (!page.isValid)).id);
-    console.log(`Current page is:`, pages.find(page => page.id === pageId))
+    let currentPage = await getPageObject();
+    console.log(`Current page is:`, currentPage)
 
     const ws = new WebSocket(wsUrl);
     ws.on('open', () => {
         console.log(`LCU Websocket open ${wsUrl}`);
         ws.send(JSON.stringify([5, "OnJsonApiEvent"]));
     })
-
+    const compareToCurrentPage = async (primaryStyleId, selectedPerkIds, subStyleId) => {
+        currentPage = await getPageObject();
+        if(!currentPage) return false;
+        return currentPage.primaryStyleId == primaryStyleId &&
+                currentPage.subStyleId == subStyleId &&
+                compareArrays(currentPage.selectedPerkIds, selectedPerkIds);
+    }
     // todo: make args an object
     const modifyPage = async (runepageId, primaryStyleId, selectedPerkIds, subStyleId, name) => {
-        await request(`lol-perks/v1/pages/${runepageId}`, null, true, 'DELETE')
-        
-        const response = await request(`lol-perks/v1/pages`, null, false, 'POST', {
-            primaryStyleId,
-            selectedPerkIds,
-            subStyleId,
-            name,
-            current: true
-        })
-        
+        let response;
+        //console.log()
+        const pageCompare = await compareToCurrentPage(primaryStyleId, selectedPerkIds, subStyleId);
+        if(pageCompare) {
+            await request(`lol-perks/v1/currentpage`, null, true, 'PUT', runepageId)
+            response = currentPage || runepageId;
+        } else {
+            await request(`lol-perks/v1/pages/${runepageId}`, null, true, 'DELETE');
+            response = await request(`lol-perks/v1/pages`, null, false, 'POST', {
+                primaryStyleId,
+                selectedPerkIds,
+                subStyleId,
+                name,
+                current: true
+            });
+        }
+
         setPageId(response.id);
-        //await request(`lol-perks/v1/currentpage`, null, true, 'PUT', runepageId)
         
         return response;
     }
+
+    
+
+   
 
     const currentChampion = await request('lol-champ-select/v1/current-champion');
     const fetchChampionRunes = async (championId) => {
@@ -146,7 +178,8 @@ const onLCUConnect = async (data) => {
         await modifyPage(pageId, primaryStyleId, selectedPerkIds, subStyleId, champion.name);
     }
 
-    if(typeof currentChampion == "number") {
+    if((typeof currentChampion == "number") && (currentChampion !== 0)) {
+        console.log(currentChampion)
         fetchChampionRunes(currentChampion);
     }
 
